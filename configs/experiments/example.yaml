@@ -1,0 +1,16 @@
+# 실험 조건표 예시
+#
+# TODO(명민): 병목 실험에 맞게 바꿀 값과 단계를 정해 주세요.
+#   vary의 키 형식
+#     processes.<공정 이름>.machines      장비 수
+#     processes.<공정 이름>.process_time  처리시간
+#     release.lots                        투입 Lot 수
+#     release.interval                    투입 간격
+#   vary의 모든 조합 × seeds만큼 실행됩니다. (아래 예시: 3 × 3 × 3 = 27회)
+
+name: example_photo_machines
+base: configs/factory.yaml
+seeds: [1, 2, 3]
+vary:
+  processes.photo.machines: [2, 3, 4]
+  release.lots: [10, 20, 30]
