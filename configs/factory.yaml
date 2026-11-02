@@ -1,0 +1,31 @@
+# OpenFab 기본 공장 설정
+# 시간 단위: 분(min)
+#
+# TODO(명민): 아래 장비 수·처리시간은 구조 확인용 임시값입니다.
+#   공정 흐름을 조사한 뒤 실제 근거가 있는 값으로 바꾸고, 출처를 주석으로 남겨 주세요.
+#   지금 값으로는 photo가 병목입니다 (Lot 1개당 40분 / 장비 2대 = 20분).
+
+processes:              # 위에서부터 순서대로 지나갑니다
+  - name: photo         # 포토: 빛으로 패턴 그리기
+    machines: 2
+    process_time: 40
+  - name: etch          # 식각: 필요 없는 부분 깎기
+    machines: 2
+    process_time: 30
+  - name: deposition    # 증착: 얇은 막 쌓기
+    machines: 2
+    process_time: 25
+  - name: cmp           # CMP: 표면을 평평하게 갈기
+    machines: 1
+    process_time: 15
+  - name: inspection    # 검사: 불량 확인
+    machines: 1
+    process_time: 10
+
+release:
+  lots: 20              # 투입할 Lot 수
+  interval: 15          # Lot 투입 간격 (평균)
+
+randomness:
+  process_time: exponential   # fixed: 항상 같은 값 | exponential: 평균이 process_time인 지수분포
+  arrival: fixed              # fixed | exponential
