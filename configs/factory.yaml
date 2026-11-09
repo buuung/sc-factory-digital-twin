@@ -1,30 +1,34 @@
-# OpenFab 기본 공장 설정
-# 시간 단위: 분(min)
+# OpenFab 기본 공장 설정 (v0.1, 명민 조사값)
+# 단위: Lot(웨이퍼 25장, FOUP 1개), 시간은 분(min)
+# process_time: Lot 1개가 장비 1대를 차지하는 평균 시간 = (최소 + 최빈 + 최대) / 3
+# 용량(Lot/h) = 장비 수 × 60 / process_time. 가장 작은 용량이 병목 (지금은 photo, 2.86 Lot/h)
 #
-# TODO(명민): 아래 장비 수·처리시간은 구조 확인용 임시값입니다.
-#   공정 흐름을 조사한 뒤 실제 근거가 있는 값으로 바꾸고, 출처를 주석으로 남겨 주세요.
-#   지금 값으로는 photo가 병목입니다 (Lot 1개당 40분 / 장비 2대 = 20분).
+# 장비 수는 전부 가정이다. 노광 장비가 가장 비싸서 실제 Fab에서도 일부러 적게 두고
+# 병목으로 관리한다는 점을 반영해 photo를 1대로 두었다. 근거·출처: docs/process_params.md
+#
+# 처리시간 분포는 원래 삼각분포(최소/최빈/최대)로 정했지만 시뮬레이터가 아직 지원하지 않아
+# 지금은 평균값만 쓴다. 삼각분포 지원 후 아래 주석의 최소/최빈/최대를 넣는다.
 
 processes:              # 위에서부터 순서대로 지나갑니다
-  - name: photo         # 포토: 빛으로 패턴 그리기
-    machines: 2
-    process_time: 40
-  - name: etch          # 식각: 필요 없는 부분 깎기
-    machines: 2
-    process_time: 30
-  - name: deposition    # 증착: 얇은 막 쌓기
-    machines: 2
-    process_time: 25
-  - name: cmp           # CMP: 표면을 평평하게 갈기
+  - name: photo         # 포토: ASML NXT:2000i 스캐너 + TEL LITHIUS 트랙
     machines: 1
-    process_time: 15
-  - name: inspection    # 검사: 불량 확인
+    process_time: 21    # 16 / 20 / 27 → 용량 2.86 Lot/h
+  - name: etch          # 식각: Lam Research · TEL 플라즈마 식각 (다중 챔버)
+    machines: 2
+    process_time: 35    # 30 / 34 / 41 → 용량 3.43 Lot/h
+  - name: deposition    # 증착: Applied Materials Producer GT (PECVD)
+    machines: 2
+    process_time: 25    # 21 / 25 / 29 → 용량 4.80 Lot/h
+  - name: cmp           # CMP: Applied Materials Reflexion GT
+    machines: 2
+    process_time: 32    # 28 / 32 / 36 → 용량 3.75 Lot/h
+  - name: inspection    # 검사: KLA 광학 패턴 결함 검사기 (Lot당 2장 샘플링)
     machines: 1
-    process_time: 10
+    process_time: 18    # 14 / 18 / 22 → 용량 3.33 Lot/h
 
 release:
-  lots: 20              # 투입할 Lot 수
-  interval: 15          # Lot 투입 간격 (평균)
+  lots: 200             # 투입할 Lot 수. 적으면 시작·끝 구간 때문에 생산량이 낮게 나온다
+  interval: 24          # Lot 투입 간격 (평균) = 2.5 Lot/h, 병목 용량(2.86)보다 조금 작다
 
 randomness:
   process_time: exponential   # fixed: 항상 같은 값 | exponential: 평균이 process_time인 지수분포

@@ -27,19 +27,32 @@
 
 ## 1. 공정 처리능력
 
-TODO(명민)
+- **식**: 처리능력 μ = c / t (Lot/분). c: 장비 수, t: Lot 1개 평균 처리시간(분). Lot/h로 보려면 × 60
+- **출처**: 명민 조사 ([process_params.md](process_params.md))
+- **가정**: 장비가 쉬지 않고 일함 (고장·셋업 교체 없음)
+- **우리 공장에서의 값**: photo 2.86 · etch 3.43 · deposition 4.80 · cmp 3.75 · inspection 3.33 Lot/h
+- **코드**: `process_capacity`
 
 ## 2. 병목 판정
 
-TODO(명민)
+- **식**: 처리능력 μ가 가장 작은 공정. 같으면 앞쪽 공정
+- **우리 공장에서의 값**: photo (2.86 Lot/h). photo 2대면 inspection (3.33)
+- **코드**: `bottleneck`
 
 ## 3. 공장 최대 생산량
 
-TODO(명민)
+- **식**: TH_max = min(μ). 한 줄로 지나가는 흐름이라 가장 느린 공정보다 빨리 나올 수 없음
+- **가정**: 투입이 충분히 많음, 재진입 없음
+- **우리 공장에서의 값**: 2.86 Lot/h. photo 2대면 3.33 Lot/h (+17%)
+- **코드**: `max_throughput`
 
 ## 4. 장비 가동률
 
-TODO(명민)
+- **식**: u = λ / μ. λ = 1 / 투입 간격. λ ≥ μ이면 1로 자름 (대기열이 계속 늘어남)
+- **가정**: 정상 상태, 도착률 < 처리능력
+- **우리 공장에서의 값** (투입 간격 24분): photo 87.5% · etch 72.9% · deposition 52.1% · cmp 66.7% · inspection 75.0%
+- **시뮬레이션과 비교**: `tests/test_sanity.py`
+- **코드**: `expected_utilization`
 
 ## 5. Little's Law
 

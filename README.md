@@ -4,7 +4,7 @@
 
 > 반도체 공장을 컴퓨터 안에 작게 만들고(OpenFab), 실험을 자동으로 돌리는 하네스를 붙인 뒤, AI Agent가 그 하네스로 병목을 찾게 만듭니다. 마지막에 3D 디지털 트윈을 맛보기로 붙입니다.
 
-> 현재 단계: 시뮬레이터·하네스 기본 구조 구현. 공정별 장비 수·처리시간은 아직 **임시값**이며, AI Agent 루프와 디지털 트윈은 구현 전입니다.
+> 현재 단계: 시뮬레이터·하네스 기본 구조 구현. 공정별 장비 수·처리시간은 명민 조사값 v0.1([docs/process_params.md](docs/process_params.md))이며, AI Agent 루프와 디지털 트윈은 구현 전입니다.
 
 ## 프로젝트 정보
 
@@ -94,7 +94,8 @@ sc-factory-digital-twin/
 │  ├─ agent/                  # [3] AI Agent: 도구 3개, 승인 게이트, 호출 기록
 │  └─ theory.py               # 관계식(이론값): 시뮬레이션 결과와 비교
 ├─ docs/
-│  └─ formulas.md             # 관계식의 식·출처·가정 정리
+│  ├─ formulas.md             # 관계식의 식·출처·가정 정리
+│  └─ process_params.md       # 공정 입력값과 근거·출처
 ├─ tests/                     # 계산·재현성·승인·관계식 검증
 └─ results/                   # 실행 결과 (git에 올리지 않음)
 ```
@@ -131,18 +132,18 @@ plot_results("results/example_photo_machines/results.csv",
 ```yaml
 processes:              # 위에서부터 순서대로 지나감
   - name: photo
-    machines: 2
-    process_time: 40    # 분
+    machines: 1
+    process_time: 21    # 분 (평균)
   # ... etch, deposition, cmp, inspection
 release:
-  lots: 20              # 투입할 Lot 수
-  interval: 15          # 투입 간격 (분)
+  lots: 200             # 투입할 Lot 수
+  interval: 24          # 투입 간격 (분)
 randomness:
   process_time: exponential   # fixed | exponential
   arrival: fixed
 ```
 
-현재 숫자는 구조 확인용 **임시값**입니다. 명민이 공정 조사 후 근거 있는 값으로 바꿉니다.
+숫자의 근거·출처와 손계산 결과는 [docs/process_params.md](docs/process_params.md)에 있습니다. 처리시간 삼각분포(최소/최빈/최대)는 아직 지원하지 않아 평균값을 씁니다.
 
 ### 실험 조건표 (`configs/experiments/*.yaml`)
 
@@ -151,7 +152,7 @@ name: example_photo_machines
 base: configs/factory.yaml
 seeds: [1, 2, 3]
 vary:                             # 모든 조합 × seed만큼 실행 (3 × 3 × 3 = 27회)
-  processes.photo.machines: [2, 3, 4]
+  processes.photo.machines: [1, 2, 3]
   release.lots: [10, 20, 30]
 ```
 
@@ -179,8 +180,7 @@ vary:                             # 모든 조합 × seed만큼 실행 (3 × 3 �
 
 명민이 채울 자리는 코드와 설정에 `TODO(명민)`으로 표시되어 있습니다.
 
-- `configs/factory.yaml`: 공정별 장비 수·처리시간과 근거
-- `src/openfab/theory.py` + `docs/formulas.md`: 처리능력·병목·가동률·Little's Law·대기시간 등 관계식과 출처. 채우면 `tests/test_theory.py`가 시뮬레이션 결과와 자동 비교
+- `src/openfab/theory.py` + `docs/formulas.md`: Little's Law·대기시간 근사 관계식과 출처 (처리능력·병목·가동률은 채움). 채우면 `tests/test_theory.py`가 시뮬레이션 결과와 자동 비교
 - `configs/experiments/`: 병목 실험 조건표
 - `eval/questions.yaml`: AI 시험 문제 10개와 정답
 

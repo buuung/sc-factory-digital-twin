@@ -1,6 +1,7 @@
 """관계식(이론값): 시뮬레이션을 돌리지 않고 손으로 계산하는 예상값.
 
-TODO(명민): 각 함수의 식을 조사해서 채워 주세요.
+처리능력·병목·최대 생산량·가동률은 명민 조사(docs/process_params.md) 기준으로 채웠다.
+TODO(명민): 남은 함수(Little's Law, 대기시간 근사)의 식을 조사해서 채워 주세요.
   - 식, 출처, 가정(어떤 조건에서 맞는 식인지)은 docs/formulas.md에 함께 정리합니다.
   - 채우면 tests/test_theory.py가 시뮬레이션 결과와 자동으로 비교합니다.
     (아직 비어 있는 함수의 테스트는 건너뜁니다: `pytest -rs`로 확인)
@@ -18,33 +19,39 @@ def process_capacity(process: ProcessConfig) -> float:
     """공정 하나가 1분에 최대 처리할 수 있는 Lot 수.
 
     입력: 장비 수(process.machines), Lot 1개 처리시간(process.process_time)
-    힌트 키워드: 처리능력(capacity), 공정 처리율
+    식: 장비 수 / 처리시간  (Lot/h로 보려면 × 60)
+    가정: 장비가 쉬지 않고 일한다(고장·셋업 교체 없음). 처리시간이 0이면 무한대
     """
-    raise NotImplementedError("TODO(명민)")
+    if process.process_time == 0:
+        return float("inf")
+    return process.machines / process.process_time
 
 
 def bottleneck(config: FactoryConfig) -> str:
     """병목 공정의 이름.
 
-    힌트: 위의 process_capacity를 이용. 같은 값이 여러 개면 앞쪽 공정
+    처리능력이 가장 작은 공정. 같은 값이 여러 개면 앞쪽 공정(max/min은 처음 것을 고른다)
     """
-    raise NotImplementedError("TODO(명민)")
+    return min(config.processes, key=process_capacity).name
 
 
 def max_throughput(config: FactoryConfig) -> float:
     """공장 전체가 1분에 최대 만들 수 있는 Lot 수 (투입이 충분히 많을 때).
 
-    힌트 키워드: 병목 처리율, bottleneck rate
+    식: 병목 공정의 처리능력. 한 줄로 지나가는 흐름이라 가장 느린 공정보다 빨리 나올 수 없다
     """
-    raise NotImplementedError("TODO(명민)")
+    return min(process_capacity(p) for p in config.processes)
 
 
 def expected_utilization(process: ProcessConfig, arrival_interval: float) -> float:
     """Lot이 arrival_interval분마다 평균 1개씩 들어올 때 이 공정의 장비 가동률 (0~1).
 
-    힌트 키워드: 가동률(utilization), 도착률, 처리율
+    식: 도착률 / 처리능력 = (1 / arrival_interval) / process_capacity
+    가정: 정상 상태, 도착률 < 처리능력. 넘으면 1(100%)로 자른다(대기열이 계속 늘어남)
     """
-    raise NotImplementedError("TODO(명민)")
+    if arrival_interval == 0:
+        return 1.0
+    return min(1.0, (1 / arrival_interval) / process_capacity(process))
 
 
 def littles_law_wip(throughput: float, cycle_time: float) -> float:

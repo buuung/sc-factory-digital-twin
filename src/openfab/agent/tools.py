@@ -36,7 +36,7 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
                 "vary": {
                     "type": "object",
                     "additionalProperties": {"type": "array"},
-                    "description": '예: {"processes.photo.machines": [2, 3, 4]}',
+                    "description": '예: {"processes.photo.machines": [1, 2, 3]}',
                 },
                 "seeds": {"type": "array", "items": {"type": "integer"}},
                 "reason": {"type": "string", "description": "이 실험을 하는 이유"},

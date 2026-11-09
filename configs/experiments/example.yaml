@@ -12,5 +12,5 @@ name: example_photo_machines
 base: configs/factory.yaml
 seeds: [1, 2, 3]
 vary:
-  processes.photo.machines: [2, 3, 4]
+  processes.photo.machines: [1, 2, 3]
   release.lots: [10, 20, 30]
