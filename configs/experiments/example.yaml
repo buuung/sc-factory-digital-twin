@@ -1,16 +1,22 @@
-# 실험 조건표 예시
+# 실험 조건표 예시: photo 장비 수 × 투입 간격
 #
-# TODO(명민): 병목 실험에 맞게 바꿀 값과 단계를 정해 주세요.
-#   vary의 키 형식
-#     processes.<공정 이름>.machines      장비 수
-#     processes.<공정 이름>.process_time  처리시간
-#     release.lots                        투입 Lot 수
-#     release.interval                    투입 간격
-#   vary의 모든 조합 × seeds만큼 실행됩니다. (아래 예시: 3 × 3 × 3 = 27회)
+# 투입 간격 24분 = 2.5 Lot/h, 20분 = 3.0 Lot/h, 15분 = 4.0 Lot/h
+#   photo 1대: 병목 용량 2.86 Lot/h → 20분·15분이면 투입이 넘쳐서 photo가 확실한 병목
+#   photo 2·3대: 다음 병목 inspection 3.33 Lot/h. 단 etch(3.43)와 3%밖에 차이가 안 나서
+#     투입이 넘치면 etch와 inspection이 둘 다 꽉 차고, seed마다 병목 열이 바뀔 수 있다.
+#   생산량은 어느 쪽이든 3.3 Lot/h 근처에서 멈춘다 (photo 2→3대는 효과 거의 없음)
+# Lot 수는 기준 설정(configs/factory.yaml)의 200개. 적으면 시작·끝 구간 때문에 결과가 흔들린다.
+#
+# vary의 키 형식
+#   processes.<공정 이름>.machines      장비 수
+#   processes.<공정 이름>.process_time  처리시간
+#   release.lots                        투입 Lot 수
+#   release.interval                    투입 간격
+# vary의 모든 조합 × seeds만큼 실행됩니다. (아래: 3 × 3 × 3 = 27회)
 
 name: example_photo_machines
 base: configs/factory.yaml
 seeds: [1, 2, 3]
 vary:
   processes.photo.machines: [1, 2, 3]
-  release.lots: [10, 20, 30]
+  release.interval: [24, 20, 15]

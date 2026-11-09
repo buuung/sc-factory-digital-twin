@@ -122,7 +122,7 @@ uv run python -m openfab.harness configs/experiments/example.yaml
 ```python
 from openfab.harness.plot import plot_results
 plot_results("results/example_photo_machines/results.csv",
-             x="processes.photo.machines", y="throughput_per_hour", group_by="release.lots")
+             x="processes.photo.machines", y="throughput_per_hour", group_by="release.interval")
 ```
 
 ## 주고받는 형식
@@ -153,7 +153,7 @@ base: configs/factory.yaml
 seeds: [1, 2, 3]
 vary:                             # 모든 조합 × seed만큼 실행 (3 × 3 × 3 = 27회)
   processes.photo.machines: [1, 2, 3]
-  release.lots: [10, 20, 30]
+  release.interval: [24, 20, 15]
 ```
 
 바꿀 수 있는 값: `processes.<공정>.machines`, `processes.<공정>.process_time`, `release.lots`, `release.interval`. 알 수 없는 키나 없는 공정 이름은 실행 전에 오류로 알립니다.
