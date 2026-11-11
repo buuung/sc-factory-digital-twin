@@ -52,3 +52,27 @@ def test_unknown_field_is_rejected():
             "processes": [{"name": "photo", "machines": 1, "process_time": 10, "speed": 2}],
             "release": {"lots": 1, "interval": 0},
         })
+
+
+def test_triangular_keeps_mean_and_follows_process_time():
+    def mean_time(process_time):
+        config = factory_from_dict({
+            "processes": [{"name": "photo", "machines": 1, "process_time": process_time,
+                           "time_range": [16, 20, 27]}],
+            "release": {"lots": 2000, "interval": 100},
+            "randomness": {"process_time": "triangular", "arrival": "fixed"},
+        })
+        result = simulate(config, seed=0)
+        return result.processes["photo"].utilization * result.makespan / 2000
+
+    assert mean_time(21) == pytest.approx(21, rel=0.02)
+    assert mean_time(42) == pytest.approx(42, rel=0.02)  # 하네스가 process_time을 바꾸면 평균도 따라간다
+
+
+def test_triangular_requires_time_range():
+    with pytest.raises(ConfigError):
+        factory_from_dict({
+            "processes": [{"name": "photo", "machines": 1, "process_time": 10}],
+            "release": {"lots": 1, "interval": 0},
+            "randomness": {"process_time": "triangular"},
+        })

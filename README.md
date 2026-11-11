@@ -172,17 +172,18 @@ uv run python -m openfab.agent eval
 processes:              # 위에서부터 순서대로 지나감
   - name: photo
     machines: 1
-    process_time: 21    # 분 (평균)
+    process_time: 21          # 분 (평균)
+    time_range: [16, 20, 27]  # 삼각분포 [최소, 최빈, 최대]
   # ... etch, deposition, cmp, inspection
 release:
   lots: 200             # 투입할 Lot 수
   interval: 24          # 투입 간격 (분)
 randomness:
-  process_time: exponential   # fixed | exponential
+  process_time: triangular    # fixed | exponential | triangular(time_range 필요)
   arrival: fixed
 ```
 
-숫자의 근거·출처와 손계산 결과는 [docs/process_params.md](docs/process_params.md)에 있습니다. 처리시간 삼각분포(최소/최빈/최대)는 아직 지원하지 않아 평균값을 씁니다.
+숫자의 근거·출처와 손계산 결과는 [docs/process_params.md](docs/process_params.md)에 있습니다. 처리시간은 삼각분포(`time_range`)로 뽑고, 평균이 `process_time`이 되도록 맞추므로 조건표에서 `process_time`을 바꿔도 그대로 동작합니다.
 
 ### 실험 조건표 (`configs/experiments/*.yaml`)
 

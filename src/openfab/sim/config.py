@@ -9,6 +9,7 @@ from typing import Any
 import yaml
 
 DISTRIBUTIONS = ("fixed", "exponential")
+PROCESS_TIME_DISTRIBUTIONS = (*DISTRIBUTIONS, "triangular")
 
 
 class ConfigError(ValueError):
@@ -19,7 +20,10 @@ class ConfigError(ValueError):
 class ProcessConfig:
     name: str
     machines: int
-    process_time: float
+    process_time: float  # 평균 처리시간
+    # triangular일 때 처리시간 모양 [최소, 최빈, 최대]. 뽑은 값은 평균이 process_time이 되도록 비율로 맞춘다
+    # (그래서 하네스가 process_time만 바꿔도 모양은 유지된 채 평균만 옮겨간다)
+    time_range: tuple[float, float, float] | None = None
 
 
 @dataclass(frozen=True)
@@ -63,15 +67,22 @@ def factory_from_dict(data: dict[str, Any]) -> FactoryConfig:
     _check_keys(randomness, {"process_time", "arrival"}, "randomness")
     process_time_dist = randomness.get("process_time", "exponential")
     arrival_dist = randomness.get("arrival", "fixed")
-    for key, value in (("process_time", process_time_dist), ("arrival", arrival_dist)):
-        if value not in DISTRIBUTIONS:
-            raise ConfigError(f"randomness.{key}는 {DISTRIBUTIONS} 중 하나여야 합니다: {value!r}")
+    if process_time_dist not in PROCESS_TIME_DISTRIBUTIONS:
+        raise ConfigError(
+            f"randomness.process_time은 {PROCESS_TIME_DISTRIBUTIONS} 중 하나여야 합니다: {process_time_dist!r}"
+        )
+    if arrival_dist not in DISTRIBUTIONS:
+        raise ConfigError(f"randomness.arrival은 {DISTRIBUTIONS} 중 하나여야 합니다: {arrival_dist!r}")
+    if process_time_dist == "triangular":
+        missing = [p.name for p in processes if p.time_range is None]
+        if missing:
+            raise ConfigError(f"triangular에는 모든 공정의 time_range가 필요합니다: {missing}")
 
     return FactoryConfig(processes, release, process_time_dist, arrival_dist)
 
 
 def _process_from_dict(data: dict[str, Any]) -> ProcessConfig:
-    _check_keys(data, {"name", "machines", "process_time"}, "process")
+    _check_keys(data, {"name", "machines", "process_time", "time_range"}, "process")
     name = data.get("name")
     if not isinstance(name, str) or not name:
         raise ConfigError(f"공정 이름이 없습니다: {data}")
@@ -79,7 +90,19 @@ def _process_from_dict(data: dict[str, Any]) -> ProcessConfig:
         name=name,
         machines=_positive_int(data.get("machines"), f"{name}.machines"),
         process_time=_non_negative(data.get("process_time"), f"{name}.process_time"),
+        time_range=_time_range(data.get("time_range"), name),
     )
+
+
+def _time_range(value: Any, name: str) -> tuple[float, float, float] | None:
+    if value is None:
+        return None
+    if not isinstance(value, (list, tuple)) or len(value) != 3:
+        raise ConfigError(f"{name}.time_range는 [최소, 최빈, 최대] 세 숫자여야 합니다: {value!r}")
+    low, mode, high = (_non_negative(v, f"{name}.time_range") for v in value)
+    if not low <= mode <= high or low == high:
+        raise ConfigError(f"{name}.time_range는 최소 ≤ 최빈 ≤ 최대이고 최소 < 최대여야 합니다: {value!r}")
+    return (low, mode, high)
 
 
 def _check_keys(data: dict[str, Any], allowed: set[str], where: str) -> None:
