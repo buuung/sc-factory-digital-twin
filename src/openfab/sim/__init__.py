@@ -2,6 +2,7 @@
 
 from openfab.sim.config import FactoryConfig, ProcessConfig, ReleaseConfig, load_factory
 from openfab.sim.factory import simulate
+from openfab.sim.timeline import StateInterval, machine_timeline, state_at
 from openfab.sim.model import EquipmentState, Event, EventKind, LotRecord, ProcessStats, SimResult
 
 __all__ = [
@@ -14,6 +15,9 @@ __all__ = [
     "ProcessStats",
     "ReleaseConfig",
     "SimResult",
+    "StateInterval",
     "load_factory",
+    "machine_timeline",
     "simulate",
+    "state_at",
 ]
