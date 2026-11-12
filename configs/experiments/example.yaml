@@ -12,6 +12,8 @@
 #   processes.<공정 이름>.process_time  처리시간
 #   release.lots                        투입 Lot 수
 #   release.interval                    투입 간격
+#   randomness.process_time             처리시간 분포 (fixed | exponential)
+#   randomness.arrival                  투입 간격 분포 (fixed | exponential)
 # vary의 모든 조합 × seeds만큼 실행됩니다. (아래: 3 × 3 × 3 = 27회)
 
 name: example_photo_machines

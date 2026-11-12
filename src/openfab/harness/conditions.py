@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import itertools
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -11,6 +12,15 @@ from typing import Any
 import yaml
 
 from openfab.sim.config import ConfigError, FactoryConfig, factory_from_dict
+
+VARY_KEYS = (
+    "processes.<공정>.machines",
+    "processes.<공정>.process_time",
+    "release.lots",
+    "release.interval",
+    "randomness.process_time",
+    "randomness.arrival",
+)
 
 Override = dict[str, Any]  # 예: {"processes.photo.machines": 3, "release.lots": 20}
 
@@ -41,8 +51,10 @@ def experiment_from_dict(data: dict[str, Any]) -> Experiment:
     unknown = set(data) - {"name", "base", "seeds", "vary"}
     if unknown:
         raise ConfigError(f"조건표에 알 수 없는 항목이 있습니다: {sorted(unknown)}")
-    if not data.get("name"):
-        raise ConfigError("조건표에 name이 없습니다")
+    name = data.get("name")
+    if not isinstance(name, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]*", name):
+        # 이름이 결과 폴더 이름이 되므로 경로 문자(/, ..)를 막는다. Agent가 지은 이름도 여기서 걸러진다
+        raise ConfigError(f"조건표의 name은 영문·숫자·밑줄·하이픈만 쓸 수 있습니다: {name!r}")
     if not isinstance(data.get("base"), dict):
         raise ConfigError("조건표의 base는 공장 설정이어야 합니다")
     seeds = data.get("seeds") or [0]
@@ -84,4 +96,7 @@ def _set_value(data: dict[str, Any], key: str, value: Any) -> None:
     if len(parts) == 2 and parts[0] == "release" and parts[1] in ("lots", "interval"):
         data.setdefault("release", {})[parts[1]] = value
         return
-    raise ConfigError(f"바꿀 수 없는 항목입니다: {key}")
+    if len(parts) == 2 and parts[0] == "randomness" and parts[1] in ("process_time", "arrival"):
+        data.setdefault("randomness", {})[parts[1]] = value
+        return
+    raise ConfigError(f"바꿀 수 없는 항목입니다: {key} (바꿀 수 있는 값: {', '.join(VARY_KEYS)})")

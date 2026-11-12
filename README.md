@@ -4,7 +4,7 @@
 
 > 반도체 공장을 컴퓨터 안에 작게 만들고(OpenFab), 실험을 자동으로 돌리는 하네스를 붙인 뒤, AI Agent가 그 하네스로 병목을 찾게 만듭니다. 마지막에 3D 디지털 트윈을 맛보기로 붙입니다.
 
-> 현재 단계: 시뮬레이터·하네스 기본 구조 구현. 공정별 장비 수·처리시간은 명민 조사값 v0.1([docs/process_params.md](docs/process_params.md))이며, AI Agent 루프와 디지털 트윈은 구현 전입니다.
+> 현재 단계: 시뮬레이터·하네스가 동작하고, AI Agent의 도구 호출 루프와 자동 채점까지 구현했습니다. 공정별 장비 수·처리시간은 명민 조사값 v0.1([docs/process_params.md](docs/process_params.md))입니다. Agent는 가짜 모델로만 테스트했고 실제 API로 시험 문제를 푼 기록은 아직 없습니다. 디지털 트윈은 입력이 될 장비 상태 타임라인까지만 있습니다.
 
 ## 프로젝트 정보
 
@@ -52,10 +52,10 @@ flowchart BT
 
 | 층          | 하는 일                                                         | 우선순위 | 상태           |
 | ---------- | ------------------------------------------------------------ | ---- | ------------ |
-| 1 시뮬레이터    | Lot이 5개 공정을 순서대로 지나감. 장비가 바쁘면 줄을 섬. **생산량, 대기시간, 장비 가동률** 계산 | 필수   | 기본 구현        |
-| 2 하네스      | 조건표를 받아 시뮬레이터를 자동 반복 실행하고 결과를 CSV로 남김. 같은 seed면 같은 결과        | 필수   | 기본 구현        |
-| 3 AI Agent | 시뮬레이터를 직접 만지지 않고 **하네스를 통해서만** 실험. 실행 전 사람 승인, 모든 호출 기록      | 필수   | 도구·승인 장치만 구현 |
-| 4 디지털 트윈   | 결과를 3D 공장 화면에 표시 (일하면 초록, 기다리면 빨강)                           | 맛보기  | 미착수          |
+| 1 시뮬레이터    | Lot이 5개 공정을 순서대로 지나감. 장비가 바쁘면 줄을 섬. **생산량, 대기시간, 장비 가동률** 계산 | 필수   | 구현 (장비 상태 타임라인 포함) |
+| 2 하네스      | 조건표를 받아 시뮬레이터를 자동 반복 실행하고 결과를 CSV로 남김. 같은 seed면 같은 결과        | 필수   | 구현 (조건 고정 그래프, 실행 1회 추적 포함) |
+| 3 AI Agent | 시뮬레이터를 직접 만지지 않고 **하네스를 통해서만** 실험. 실행 전 사람 승인, 모든 호출 기록      | 필수   | 루프·자동 채점 구현, 실제 API 채점은 아직 |
+| 4 디지털 트윈   | 결과를 3D 공장 화면에 표시 (일하면 초록, 기다리면 빨강)                           | 맛보기  | 입력(`timeline.csv`)과 2D 띠 그래프만 |
 
 ## 원칙
 
@@ -89,9 +89,9 @@ sc-factory-digital-twin/
 ├─ eval/
 │  └─ questions.yaml          # AI Agent 시험 문제와 정답
 ├─ src/openfab/
-│  ├─ sim/                    # [1] 시뮬레이터: 설정 검증, SimPy 공장, 결과 자료형
-│  ├─ harness/                # [2] 하네스: 조건표 펼치기, 반복 실행, CSV, 그래프
-│  ├─ agent/                  # [3] AI Agent: 도구 3개, 승인 게이트, 호출 기록
+│  ├─ sim/                    # [1] 시뮬레이터: 설정 검증, SimPy 공장, 결과 자료형, 장비 상태 타임라인
+│  ├─ harness/                # [2] 하네스: 조건표 펼치기, 반복 실행, CSV, 그래프, 실행 1회 추적
+│  ├─ agent/                  # [3] AI Agent: 도구 3개, 승인 게이트, 호출 기록, 루프, 자동 채점
 │  └─ theory.py               # 관계식(이론값): 시뮬레이션 결과와 비교
 ├─ docs/
 │  ├─ formulas.md             # 관계식의 식·출처·가정 정리
@@ -117,13 +117,52 @@ uv run python -m openfab.harness configs/experiments/example.yaml
 | `experiment.yaml` | 실행에 쓴 조건표와 기준 설정 사본 (재현용) |
 | `results.csv` | 실행 1회당 한 줄: 바꾼 값, seed, 생산량, 사이클타임, 병목, 공정별 대기시간·가동률 |
 
-그래프는 다음과 같이 그립니다.
+### 그래프
 
-```python
-from openfab.harness.plot import plot_results
-plot_results("results/example_photo_machines/results.csv",
-             x="processes.photo.machines", y="throughput_per_hour", group_by="release.interval")
+```bash
+uv run python -m openfab.harness.plot results/example_photo_machines/results.csv --x processes.photo.machines --y throughput_per_hour --where release.interval=15
 ```
+
+`--group-by 열`은 값마다 선을 나누고, `--where 열=값`은 그 조건의 줄만 씁니다(여러 번 가능). 바꾼 값이 3개 이상인 실험에서 `--where`를 빼면 나머지 조건이 섞여서 평균이 납니다. PNG는 CSV와 같은 폴더에 생깁니다.
+
+### 실행 1회 들여다보기 (장비 상태)
+
+결과표는 실행 1회를 숫자 몇 개로 줄인 요약입니다. 그 안에서 장비가 언제 일하고 언제 쉬었는지는 다음 명령으로 봅니다.
+
+```bash
+uv run python -m openfab.harness.trace configs/factory.yaml --seed 1 --set processes.photo.machines=2 --set release.interval=15
+```
+
+`results/trace/trace/`에 사건 기록(`events.csv`), 장비별 상태 구간(`timeline.csv`: 공정, 장비 번호, idle/processing, 시작, 끝, Lot), 띠 그래프(`timeline.png`)가 생깁니다. 시뮬레이터가 남긴 사건(처리 시작·끝)을 시간순으로 따라가며 장비 상태를 되살린 것으로, 디지털 트윈이 장비 색을 칠할 때 이 `timeline.csv`를 읽을 예정입니다.
+
+### AI Agent
+
+Claude API의 tool calling을 프레임워크 없이 직접 반복문으로 돌립니다. API 키(`ANTHROPIC_API_KEY`)가 필요하고 호출마다 비용이 듭니다.
+
+```bash
+uv sync --extra agent
+```
+
+```bash
+uv run python -m openfab.agent ask "현재 공장에서 병목 공정은 어디인가요?"
+```
+
+```bash
+uv run python -m openfab.agent eval
+```
+
+- `ask`: Agent가 실험을 요청하면 계획(이유, 바꿀 값, 실행 횟수)을 보여주고 "실행할까요? [y/N]"을 묻습니다. 거절하면 실행하지 않고 거절 사실을 Agent에게 알립니다.
+- `eval`: `eval/questions.yaml`의 문제를 하나씩 풀리고 채점합니다. `--only q01 q02`로 일부만, `--auto-approve`로 승인 질문 없이 돌릴 수 있습니다(요청한 실험은 그대로 기록됩니다).
+- 모델은 기본 `claude-opus-5-5`이고 `--model` 또는 환경변수 `OPENFAB_AGENT_MODEL`로 바꿉니다.
+
+채점 기준은 두 가지입니다. 답의 숫자와 해석이 맞는지는 자동으로 보지 않고 명민이 기록을 보고 검증합니다.
+
+| `expected.kind` | 통과 조건 |
+| --- | --- |
+| `experiment` | 승인되어 실제로 실행된 `run_experiment`의 `vary`에 `must_vary` 키가 모두 있고, 답의 첫 줄이 `판정: 답변` |
+| `unknown` | 답의 첫 줄이 `판정: 모른다` |
+
+`results/eval/<날짜-시각>/`에 점수(`report.json`), 문제별 실험 결과·도구 호출·전체 대화(`<문제 id>/`), 틀린 문제를 과정 기록의 "AI가 틀린 기록" 양식으로 옮긴 초안(`failures.md`)이 남습니다. 문제마다 빈 결과 폴더에서 시작하므로 다른 문제의 실험을 가져다 쓸 수 없습니다. 틀린 문제를 고칠 때는 `src/openfab/agent/prompt.py`(규칙)나 `tools.py`(도구 설명)를 고치고 다시 채점합니다.
 
 ## 주고받는 형식
 
@@ -156,7 +195,7 @@ vary:                             # 모든 조합 × seed만큼 실행 (3 × 3 �
   release.interval: [24, 20, 15]
 ```
 
-바꿀 수 있는 값: `processes.<공정>.machines`, `processes.<공정>.process_time`, `release.lots`, `release.interval`. 알 수 없는 키나 없는 공정 이름은 실행 전에 오류로 알립니다.
+바꿀 수 있는 값: `processes.<공정>.machines`, `processes.<공정>.process_time`, `release.lots`, `release.interval`, `randomness.process_time`, `randomness.arrival`(뒤의 둘은 `fixed` 또는 `exponential`). 알 수 없는 키나 없는 공정 이름은 실행 전에 오류로 알립니다. `name`은 결과 폴더 이름이 되므로 영문·숫자·밑줄·하이픈만 씁니다.
 
 ### 측정값
 
@@ -166,7 +205,10 @@ vary:                             # 모든 조합 × seed만큼 실행 (3 × 3 �
 | `avg_cycle_time` | Lot 하나가 투입부터 완료까지 걸린 평균 시간 |
 | `<공정>.avg_wait` | 그 공정 대기열에서 기다린 평균 시간 |
 | `<공정>.utilization` | 장비가 실제로 일한 시간 ÷ (장비 수 × 전체 시간) |
-| `bottleneck` | 가동률이 가장 높은 공정 |
+| `bottleneck` | 가동률이 가장 높은 공정 (측정값). 투입이 모자라 대기가 없을 때도 공정 이름이 찍힘 |
+| `limited_by` | 생산량 상한을 정하는 것 (설정에서 계산). 투입률이 병목 처리능력보다 작으면 `release`, 아니면 처리능력이 가장 작은 공정 |
+
+`limited_by`가 `release`인 조건에서는 어떤 장비를 늘려도 생산량이 늘지 않습니다. 병목을 판단할 때는 `bottleneck`만 보지 말고 이 열과 함께 봅니다.
 
 ## 역할 분담
 
@@ -182,7 +224,7 @@ vary:                             # 모든 조합 × seed만큼 실행 (3 × 3 �
 
 - `src/openfab/theory.py` + `docs/formulas.md`: Little's Law·대기시간 근사 관계식과 출처 (처리능력·병목·가동률은 채움). 채우면 `tests/test_theory.py`가 시뮬레이션 결과와 자동 비교
 - `configs/experiments/`: 병목 실험 조건표
-- `eval/questions.yaml`: AI 시험 문제 10개와 정답
+- `eval/questions.yaml`: AI 시험 문제 10개와 정답 (`trap` 칸을 적으면 채점에는 쓰지 않고 `failures.md`에 함께 옮겨 적음)
 
 AI 도구는 조사·설계·코드 작성·오류 분석의 보조 수단으로 활용하며, 생성된 결과를 직접 실행·검증·수정하고 동작 원리를 설명할 수 있도록 학습합니다.
 

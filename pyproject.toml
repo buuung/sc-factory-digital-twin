@@ -10,11 +10,17 @@ dependencies = [
     "matplotlib>=3.8",
 ]
 
+[project.optional-dependencies]
+agent = ["anthropic>=1.1"]   # [3층] AI Agent를 실제 Claude API에 연결할 때만 필요
+
 [dependency-groups]
 dev = ["pytest>=8"]
 
 [project.scripts]
 openfab-run = "openfab.harness.cli:main"
+openfab-plot = "openfab.harness.plot:main"
+openfab-trace = "openfab.harness.trace:main"
+openfab-agent = "openfab.agent.cli:main"
 
 [build-system]
 requires = ["hatchling"]
