@@ -154,6 +154,13 @@ uv run python -m openfab.agent eval
 - `ask`: Agent가 실험을 요청하면 계획(이유, 바꿀 값, 실행 횟수)을 보여주고 "실행할까요? [y/N]"을 묻습니다. 거절하면 실행하지 않고 거절 사실을 Agent에게 알립니다.
 - `eval`: `eval/questions.yaml`의 문제를 하나씩 풀리고 채점합니다. `--only q01 q02`로 일부만, `--auto-approve`로 승인 질문 없이 돌릴 수 있습니다(요청한 실험은 그대로 기록됩니다).
 - 모델은 기본 `claude-opus-5-5`이고 `--model` 또는 환경변수 `OPENFAB_AGENT_MODEL`로 바꿉니다.
+- 학교에서 제공하는 BAZE(FactChat) 게이트웨이 키로도 연결할 수 있습니다. 키는 파일에 적지 말고 터미널 환경변수로만 설정합니다. 모델 이름은 게이트웨이가 지원하는 것을 써야 합니다.
+
+```bash
+export ANTHROPIC_BASE_URL=https://factchat-cloud.mindlogic.ai/v1/gateway/claude
+export ANTHROPIC_API_KEY=<학교에서 발급받은 키>
+export OPENFAB_AGENT_MODEL=claude-opus-5
+```
 
 채점 기준은 두 가지입니다. 답의 숫자와 해석이 맞는지는 자동으로 보지 않고 명민이 기록을 보고 검증합니다.
 
