@@ -203,7 +203,7 @@ vary:                             # 모든 조합 × seed만큼 실행 (3 × 3 �
   release.interval: [24, 20, 15]
 ```
 
-바꿀 수 있는 값: `processes.<공정>.machines`, `processes.<공정>.process_time`, `release.lots`, `release.interval`, `randomness.process_time`, `randomness.arrival`(뒤의 둘은 `fixed` 또는 `exponential`). 알 수 없는 키나 없는 공정 이름은 실행 전에 오류로 알립니다. `name`은 결과 폴더 이름이 되므로 영문·숫자·밑줄·하이픈만 씁니다.
+바꿀 수 있는 값: `processes.<공정>.machines`, `processes.<공정>.process_time`, `release.lots`, `release.interval`, `randomness.process_time`, `randomness.arrival`(`randomness.process_time`은 `fixed`·`exponential`·`triangular`, `randomness.arrival`은 `fixed`·`exponential`). 알 수 없는 키나 없는 공정 이름은 실행 전에 오류로 알립니다. `name`은 결과 폴더 이름이 되므로 영문·숫자·밑줄·하이픈만 씁니다.
 
 ### 측정값
 

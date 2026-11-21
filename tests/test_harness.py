@@ -104,3 +104,13 @@ def test_agent_plot_tool_accepts_where(tmp_path):
     })
     assert plotted["image"].endswith(".png")
     assert "error" in toolbox.call("plot", {"name": "../p", "x": "seed", "y": "makespan"})
+
+
+def test_process_time_distribution_can_be_varied_to_triangular(tmp_path):
+    base = load_experiment("configs/experiments/example.yaml").base
+    experiment = experiment_from_dict({
+        "name": "dist", "base": base, "seeds": [1],
+        "vary": {"randomness.process_time": ["fixed", "triangular", "exponential"], "release.lots": [30]},
+    })
+    with open(run_experiment(experiment, tmp_path) / "results.csv", encoding="utf-8") as f:
+        assert [r["randomness.process_time"] for r in csv.DictReader(f)] == ["fixed", "triangular", "exponential"]

@@ -27,7 +27,8 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
         "description": (
             "기준 공장 설정에서 일부 값을 바꿔가며 시뮬레이션을 반복 실행한다. "
             f"vary의 키는 {', '.join(VARY_KEYS)} 중 하나다. "
-            "randomness 값은 fixed 또는 exponential이다. vary의 모든 조합 × seed만큼 실행하고, "
+            "randomness.process_time은 fixed | exponential | triangular, randomness.arrival은 fixed | exponential이다. "
+            "vary의 모든 조합 × seed만큼 실행하고, "
             "조건별 seed 평균을 돌려준다. 실행 전 사람이 승인해야 하며 거절될 수 있다."
         ),
         "input_schema": {
