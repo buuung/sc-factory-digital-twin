@@ -108,18 +108,22 @@ def claude_model(base: dict[str, Any], model: str | None = None, effort: str = "
     except ImportError as e:
         raise RuntimeError("anthropic 패키지가 없습니다. `uv sync --extra agent`를 실행해 주세요.") from e
 
-    client = anthropic.Anthropic()  # ANTHROPIC_API_KEY 등 환경에서 인증 정보를 읽는다
+    # 인증 정보와 주소는 SDK가 환경변수에서 읽는다.
+    #   ANTHROPIC_API_KEY   API 키
+    #   ANTHROPIC_BASE_URL  (선택) Anthropic 대신 학교 게이트웨이 등 다른 주소로 보낼 때
+    client = anthropic.Anthropic()
     model = model or os.environ.get("OPENFAB_AGENT_MODEL", DEFAULT_MODEL)
     system = build_system_prompt(base)
+    request = {"model": model, "max_tokens": 16000, "system": system, "tools": TOOL_SCHEMAS,
+               "output_config": {"effort": effort}}
+    via_gateway = bool(os.environ.get("ANTHROPIC_BASE_URL"))
 
     def call(messages: list[dict[str, Any]]) -> Any:
+        if via_gateway:  # 게이트웨이는 베타 기능을 받지 않을 수 있어 기본 Messages API만 쓴다
+            return client.messages.create(messages=messages, **request)
         return client.beta.messages.create(
-            model=model,
-            max_tokens=16000,
-            system=system,
-            tools=TOOL_SCHEMAS,
             messages=messages,
-            output_config={"effort": effort},
+            **request,
             # 안전 분류기가 요청을 거절하면 서버가 다른 모델로 같은 요청을 이어서 처리한다
             betas=["server-side-fallback-2026-07-01"],
             fallbacks="default",
