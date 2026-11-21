@@ -6,7 +6,7 @@
 #     must_vary     Agent가 만든 조건표의 vary에 반드시 들어가야 하는 키
 #     answer        사람이 확인할 정답 요약 (명민이 데이터로 검증한 결론)
 #
-# 정답 근거: configs/experiments/bottleneck_photo_inspection.yaml (Lot 100개, seed 1·2·3 평균)
+# 정답 근거: configs/experiments/bottleneck_photo_inspection.yaml (Lot 200개, 처리시간 삼각분포, seed 1·2·3 평균)
 # 기준 공장: configs/factory.yaml (숫자표 v0.1, 투입 간격 24분)
 # 처리능력(Lot/h): 포토 2.86×대수 · 식각 3.43 · 증착 4.80 · CMP 3.75 · 검사 3.33×대수
 
@@ -18,14 +18,14 @@ questions:
     expected:
       kind: experiment
       must_vary: [processes.photo.machines]
-      answer: "병목은 포토(2.86 Lot/h). 포토에 1대 추가하면 투입 15분 기준 2.70 → 3.13 Lot/h(+16%), 이후 병목은 검사로 이동"
+      answer: "병목은 포토(2.86 Lot/h). 포토에 1대 추가하면 투입 15분 기준 2.78 → 3.23 Lot/h(+16%), 이후 병목은 검사로 이동"
 
   - id: q02
     question: "포토 장비를 2대에서 3대로 늘리면 생산량이 얼마나 늘어나나요?"
     expected:
       kind: experiment
       must_vary: [processes.photo.machines]
-      answer: "늘지 않는다(+0%). 포토 2대(5.71 Lot/h)부터는 검사(3.33)가 병목이라 3대째 포토는 가동률만 55% → 37%로 떨어진다"
+      answer: "늘지 않는다(+0%). 포토 2대(5.71 Lot/h)부터는 검사(3.33)가 병목이라 3대째 포토는 가동률만 57% → 38%로 떨어진다"
       trap: "장비를 늘리면 생산량도 는다고 가정함"
 
   - id: q03
@@ -33,7 +33,7 @@ questions:
     expected:
       kind: experiment
       must_vary: [processes.inspection.machines]
-      answer: "변하지 않는다(+0%, 2.70 Lot/h). 포토가 여전히 병목이다. 병목을 순서대로 풀어야 효과가 난다"
+      answer: "변하지 않는다(+0%, 2.78 Lot/h). 포토가 여전히 병목이다. 병목을 순서대로 풀어야 효과가 난다"
       trap: "병목이 아닌 공정에 장비를 추가해도 효과가 있다고 답함"
 
   - id: q04
@@ -41,7 +41,7 @@ questions:
     expected:
       kind: experiment
       must_vary: [processes.photo.machines, release.interval]
-      answer: "효과 없다. 투입 2 Lot/h가 병목 처리능력(2.86)보다 작아서 장비 수와 상관없이 생산량 1.93 Lot/h, 사이클타임 약 131분 그대로. 투입량이 병목이다"
+      answer: "효과 없다. 투입 2 Lot/h가 병목 처리능력(2.86)보다 작아서 장비 수와 상관없이 생산량 1.97 Lot/h, 사이클타임 약 131분 그대로. 투입량이 병목이다"
       trap: "수요(투입량)를 확인하지 않고 장비 효과를 답함"
 
   - id: q05
@@ -49,15 +49,15 @@ questions:
     expected:
       kind: experiment
       must_vary: [processes.photo.machines]
-      answer: "다르다. 투입 15분 기준 대기는 식각 앞이 128분으로 가장 길지만, 생산량을 막는 건 처리능력이 가장 작은 검사(3.33). 들어오는 양(4 Lot/h)을 넘는 공정 중 앞쪽인 식각에 줄이 먼저 생긴다"
+      answer: "다르다. 투입 15분 기준 대기는 식각 앞이 255분으로 가장 길지만(검사 앞은 39분), 생산량을 막는 건 처리능력이 가장 작은 검사(3.33). 들어오는 양(4 Lot/h)을 넘는 공정 중 앞쪽인 식각에 줄이 먼저 생긴다"
       trap: "줄이 가장 긴 곳을 병목이라고 답함"
 
   - id: q06
-    question: "생산량을 시간당 3.2 Lot 이상으로 만들려면 장비를 최소 어떻게 늘려야 하나요?"
+    question: "생산량을 시간당 3.3 Lot 이상으로 만들려면 장비를 최소 어떻게 늘려야 하나요?"
     expected:
       kind: experiment
       must_vary: [processes.photo.machines, processes.inspection.machines]
-      answer: "포토 2대 + 검사 2대 → 3.23 Lot/h. 포토만 늘리면 3.13에서 멈춘다. 다음 병목은 식각(3.43)"
+      answer: "포토 2대 + 검사 2대 → 3.32 Lot/h. 포토만 늘리면 3.23에서 멈춘다. 다음 병목은 식각(3.43)"
       trap: "한 공정만 늘리고 끝냄"
 
   - id: q07
@@ -65,7 +65,7 @@ questions:
     expected:
       kind: experiment
       must_vary: [release.interval]
-      answer: "생산량은 2.39 → 2.70 Lot/h로 조금 늘고 포토 처리능력(2.86) 근처에서 멈춘다. 사이클타임은 132분 → 432분으로 3배 넘게 늘어난다(포토 앞 대기 약 300분)"
+      answer: "생산량은 2.44 → 2.78 Lot/h로 조금 늘고 포토 처리능력(2.86) 근처에서 멈춘다. 사이클타임은 132분 → 734분으로 5배 넘게 늘어난다(포토 앞 대기 약 600분)"
       trap: "많이 넣으면 그만큼 많이 나온다고 답함"
 
   # ---- "모른다" 문제 3개: 시뮬레이터에 없는 데이터를 지어내면 0점 ----
