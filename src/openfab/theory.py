@@ -1,16 +1,15 @@
 """관계식(이론값): 시뮬레이션을 돌리지 않고 손으로 계산하는 예상값.
 
 처리능력·병목·최대 생산량·가동률은 명민 조사(docs/process_params.md) 기준으로 채웠다.
-TODO(명민): 남은 함수(Little's Law, 대기시간 근사)의 식을 조사해서 채워 주세요.
-  - 식, 출처, 가정(어떤 조건에서 맞는 식인지)은 docs/formulas.md에 함께 정리합니다.
-  - 채우면 tests/test_theory.py가 시뮬레이션 결과와 자동으로 비교합니다.
-    (아직 비어 있는 함수의 테스트는 건너뜁니다: `pytest -rs`로 확인)
-  - 시간 단위는 분(min)입니다.
+Little's Law와 대기시간 근사(VUT/Sakasegawa)까지 채웠다. 식·출처·가정은 docs/formulas.md에 있고,
+tests/test_theory.py가 시뮬레이션 결과와 자동으로 비교한다. 시간 단위는 분(min)이다.
 
 시뮬레이션 결과와 이론값이 다르면 둘 중 하나가 틀린 것이므로, 어느 쪽인지 같이 확인합니다.
 """
 
 from __future__ import annotations
+
+import math
 
 from openfab.sim.config import FactoryConfig, ProcessConfig
 
@@ -58,9 +57,9 @@ def littles_law_wip(throughput: float, cycle_time: float) -> float:
     """공장 안에 평균 몇 개의 Lot이 있는지 (WIP, 재공).
 
     입력: 1분당 생산량, 평균 사이클타임(분)
-    힌트 키워드: Little's Law
+    식: WIP = 생산량 × 사이클타임 (Little's Law)
     """
-    raise NotImplementedError("TODO(명민)")
+    return throughput * cycle_time
 
 
 def expected_wait(
@@ -75,7 +74,24 @@ def expected_wait(
       arrival_interval  평균 도착 간격
       arrival_cv        도착 간격의 변동계수 (표준편차 ÷ 평균). fixed면 0, exponential이면 1
       process_cv        처리시간의 변동계수. fixed면 0, exponential이면 1
-    힌트 키워드: Kingman 공식(VUT 식), 장비가 여러 대면 Sakasegawa 근사, Factory Physics
-    가동률이 100%에 가까울수록 대기시간이 폭발적으로 늘어나는지 확인해 보세요.
+    식 (VUT, 장비 m대는 Sakasegawa 근사. m = 1이면 Kingman 공식과 같다):
+      대기 = (ca² + ce²)/2 × u^(√(2(m+1)) − 1) / (m(1 − u)) × 처리시간
+             변동(V)        가동률(U)                        시간(T)
+    u가 1에 가까워지면 1/(1 − u) 때문에 대기가 폭발한다. u ≥ 1이면 무한대
     """
-    raise NotImplementedError("TODO(명민)")
+    u = expected_utilization(process, arrival_interval)
+    if u >= 1:
+        return math.inf
+    m = process.machines
+    variability = (arrival_cv**2 + process_cv**2) / 2
+    utilization = u ** (math.sqrt(2 * (m + 1)) - 1) / (m * (1 - u))
+    return variability * utilization * process.process_time
+
+
+def triangular_cv(low: float, mode: float, high: float) -> float:
+    """삼각분포 처리시간의 변동계수 (표준편차 ÷ 평균). expected_wait의 process_cv에 넣는다.
+
+    분산 = (a² + b² + c² − ab − ac − bc) / 18, 평균 = (a + b + c) / 3
+    """
+    variance = (low**2 + mode**2 + high**2 - low * mode - low * high - mode * high) / 18
+    return math.sqrt(variance) / ((low + mode + high) / 3)

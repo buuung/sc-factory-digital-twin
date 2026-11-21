@@ -124,10 +124,12 @@ def test_grading_rules(tmp_path):
 
 
 def test_eval_writes_report_and_failure_record(tmp_path):
-    questions = load_questions("eval/questions.yaml")[:2]
+    loaded = load_questions("eval/questions.yaml")
+    unknown = next(q for q in loaded if q.kind == "unknown")  # 첫 "모른다" 문제 (고장 질문)
+    questions = [loaded[0], unknown]
     assert [q.kind for q in questions] == ["experiment", "unknown"]
 
-    # q01은 맞는 실험을 하고, q02(고장 질문)는 지어내서 답한다 → 1/2
+    # q01은 맞는 실험을 하고, 고장 질문은 지어내서 답한다 → 1/2
     model = scripted(
         ([tool_use("run_experiment", PHOTO_EXPERIMENT)], "tool_use"),
         ([text("판정: 답변\n병목은 photo입니다.")], "end_turn"),
@@ -139,9 +141,9 @@ def test_eval_writes_report_and_failure_record(tmp_path):
     saved = json.loads((tmp_path / "report.json").read_text(encoding="utf-8"))
     assert [q["passed"] for q in saved["questions"]] == [True, False]
     assert (tmp_path / "q01" / "photo_machines" / "results.csv").exists()  # 문제마다 결과 폴더가 따로
-    assert (tmp_path / "q02" / "transcript.json").exists()
+    assert (tmp_path / unknown.id / "transcript.json").exists()
     failures = (tmp_path / "failures.md").read_text(encoding="utf-8")
-    assert "## q02" in failures and "20% 줄어듭니다" in failures and "## q01" not in failures
+    assert f"## {unknown.id}" in failures and "20% 줄어듭니다" in failures and "## q01" not in failures
 
 
 def test_system_prompt_is_built_from_config():

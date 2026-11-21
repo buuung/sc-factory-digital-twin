@@ -179,17 +179,18 @@ export OPENFAB_AGENT_MODEL=claude-opus-5
 processes:              # 위에서부터 순서대로 지나감
   - name: photo
     machines: 1
-    process_time: 21    # 분 (평균)
+    process_time: 21          # 분 (평균)
+    time_range: [16, 20, 27]  # 삼각분포 [최소, 최빈, 최대]
   # ... etch, deposition, cmp, inspection
 release:
   lots: 200             # 투입할 Lot 수
   interval: 24          # 투입 간격 (분)
 randomness:
-  process_time: exponential   # fixed | exponential
+  process_time: triangular    # fixed | exponential | triangular(time_range 필요)
   arrival: fixed
 ```
 
-숫자의 근거·출처와 손계산 결과는 [docs/process_params.md](docs/process_params.md)에 있습니다. 처리시간 삼각분포(최소/최빈/최대)는 아직 지원하지 않아 평균값을 씁니다.
+숫자의 근거·출처와 손계산 결과는 [docs/process_params.md](docs/process_params.md)에 있습니다. 처리시간은 삼각분포(`time_range`)로 뽑고, 평균이 `process_time`이 되도록 맞추므로 조건표에서 `process_time`을 바꿔도 그대로 동작합니다.
 
 ### 실험 조건표 (`configs/experiments/*.yaml`)
 
@@ -227,11 +228,12 @@ vary:                             # 모든 조합 × seed만큼 실행 (3 × 3 �
 | 4 디지털 트윈 | 디지털 트윈·Autonomous Fab 업계 사례 조사 | OpenUSD로 장비 상태 3D 표시 맛보기 |
 | 정리 | 분석 보고서, 발표 흐름 | README, 구조 그림, 실행 방법 |
 
-명민이 채울 자리는 코드와 설정에 `TODO(명민)`으로 표시되어 있습니다.
+명민 담당이던 자리(`TODO(명민)`)는 모두 채웠습니다.
 
-- `src/openfab/theory.py` + `docs/formulas.md`: Little's Law·대기시간 근사 관계식과 출처 (처리능력·병목·가동률은 채움). 채우면 `tests/test_theory.py`가 시뮬레이션 결과와 자동 비교
-- `configs/experiments/`: 병목 실험 조건표
-- `eval/questions.yaml`: AI 시험 문제 10개와 정답 (`trap` 칸을 적으면 채점에는 쓰지 않고 `failures.md`에 함께 옮겨 적음)
+- `configs/factory.yaml` + `docs/process_params.md`: 공정 숫자표 v0.1과 출처, 처리시간 삼각분포
+- `src/openfab/theory.py` + `docs/formulas.md`: 관계식 6개(처리능력·병목·최대 생산량·가동률·Little's Law·대기시간 근사). `tests/test_theory.py`가 시뮬레이션 결과와 자동 비교
+- `configs/experiments/bottleneck_photo_inspection.yaml`: 병목 실험 (포토 1~3대 × 검사 1~2대 × 투입 간격 3단계, 54회)
+- `eval/questions.yaml`: AI 시험 문제 10개(실험 7 + "모른다" 3)와 정답, 문제별 함정(`trap`)
 
 AI 도구는 조사·설계·코드 작성·오류 분석의 보조 수단으로 활용하며, 생성된 결과를 직접 실행·검증·수정하고 동작 원리를 설명할 수 있도록 학습합니다.
 

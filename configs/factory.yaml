@@ -6,30 +6,36 @@
 # 장비 수는 전부 가정이다. 노광 장비가 가장 비싸서 실제 Fab에서도 일부러 적게 두고
 # 병목으로 관리한다는 점을 반영해 photo를 1대로 두었다. 근거·출처: docs/process_params.md
 #
-# 처리시간 분포는 원래 삼각분포(최소/최빈/최대)로 정했지만 시뮬레이터가 아직 지원하지 않아
-# 지금은 평균값만 쓴다. 삼각분포 지원 후 아래 주석의 최소/최빈/최대를 넣는다.
+# 처리시간은 삼각분포 time_range [최소, 최빈, 최대]로 뽑는다. 뽑은 값은 평균이 process_time이
+# 되도록 비율로 맞추므로, 조건표에서 process_time을 바꾸면 모양은 유지된 채 평균만 옮겨간다.
+# 오른쪽 꼬리가 긴 이유: 실제 장비는 예정보다 빨리 끝나기보다 늦어지는 경우가 더 흔하다.
 
 processes:              # 위에서부터 순서대로 지나갑니다
   - name: photo         # 포토: ASML NXT:2000i 스캐너 + TEL LITHIUS 트랙
     machines: 1
-    process_time: 21    # 16 / 20 / 27 → 용량 2.86 Lot/h
+    process_time: 21    # → 용량 2.86 Lot/h
+    time_range: [16, 20, 27]
   - name: etch          # 식각: Lam Research · TEL 플라즈마 식각 (다중 챔버)
     machines: 2
-    process_time: 35    # 30 / 34 / 41 → 용량 3.43 Lot/h
+    process_time: 35    # → 용량 3.43 Lot/h
+    time_range: [30, 34, 41]
   - name: deposition    # 증착: Applied Materials Producer GT (PECVD)
     machines: 2
-    process_time: 25    # 21 / 25 / 29 → 용량 4.80 Lot/h
+    process_time: 25    # → 용량 4.80 Lot/h
+    time_range: [21, 25, 29]
   - name: cmp           # CMP: Applied Materials Reflexion GT
     machines: 2
-    process_time: 32    # 28 / 32 / 36 → 용량 3.75 Lot/h
+    process_time: 32    # → 용량 3.75 Lot/h
+    time_range: [28, 32, 36]
   - name: inspection    # 검사: KLA 광학 패턴 결함 검사기 (Lot당 2장 샘플링)
     machines: 1
-    process_time: 18    # 14 / 18 / 22 → 용량 3.33 Lot/h
+    process_time: 18    # → 용량 3.33 Lot/h
+    time_range: [14, 18, 22]
 
 release:
   lots: 200             # 투입할 Lot 수. 적으면 시작·끝 구간 때문에 생산량이 낮게 나온다
   interval: 24          # Lot 투입 간격 (평균) = 2.5 Lot/h, 병목 용량(2.86)보다 조금 작다
 
 randomness:
-  process_time: exponential   # fixed: 항상 같은 값 | exponential: 평균이 process_time인 지수분포
+  process_time: triangular    # fixed | exponential | triangular(time_range 필요)
   arrival: fixed              # fixed | exponential

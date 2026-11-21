@@ -29,9 +29,12 @@ def simulate(config: FactoryConfig, seed: int) -> SimResult:
     events: list[Event] = []
     lots: list[LotRecord] = []
 
-    def sample(mean: float, dist: str) -> float:
+    def sample(mean: float, dist: str, time_range: tuple[float, float, float] | None = None) -> float:
         if dist == "fixed" or mean == 0:
             return mean
+        if dist == "triangular":
+            low, mode, high = time_range
+            return rng.triangular(low, high, mode) * mean / ((low + mode + high) / 3)
         return rng.expovariate(1 / mean)
 
     def lot_flow(lot: LotRecord):
@@ -46,7 +49,7 @@ def simulate(config: FactoryConfig, seed: int) -> SimResult:
             lot.waits[name] = wait
             events.append(Event(env.now, EventKind.STARTED, lot.lot_id, name, machine))
 
-            duration = sample(station.config.process_time, config.process_time_dist)
+            duration = sample(station.config.process_time, config.process_time_dist, station.config.time_range)
             yield env.timeout(duration)
             station.busy_time += duration
             events.append(Event(env.now, EventKind.FINISHED, lot.lot_id, name, machine))

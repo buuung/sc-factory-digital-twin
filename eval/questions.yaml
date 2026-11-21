@@ -1,22 +1,91 @@
-# AI Agent 시험 문제
+# AI Agent 시험 문제 (2026-11-11, 명민)
 #
-# TODO(명민): 문제 10개와 정답을 작성해 주세요. 아래 두 개는 형식 예시입니다.
 #   question        Agent에게 줄 질문
 #   expected        자동 채점 기준
 #     kind          experiment: 실험을 골라야 하는 문제 | unknown: 데이터가 없으므로 "모른다"가 정답
 #     must_vary     Agent가 만든 조건표의 vary에 반드시 들어가야 하는 키
 #     answer        사람이 확인할 정답 요약 (명민이 데이터로 검증한 결론)
+#
+# 정답 근거: configs/experiments/bottleneck_photo_inspection.yaml (Lot 200개, 처리시간 삼각분포, seed 1·2·3 평균)
+# 기준 공장: configs/factory.yaml (숫자표 v0.1, 투입 간격 24분)
+# 처리능력(Lot/h): 포토 2.86×대수 · 식각 3.43 · 증착 4.80 · CMP 3.75 · 검사 3.33×대수
 
 questions:
+  # ---- 실험 문제 7개: 맞는 실험을 고르고 데이터로 답해야 한다 ----
+
   - id: q01
     question: "현재 공장에서 병목 공정은 어디이고, 장비를 한 대 추가한다면 어느 공정에 추가해야 하나요?"
     expected:
       kind: experiment
       must_vary: [processes.photo.machines]
-      answer: "TODO(명민)"
+      answer: "병목은 포토(2.86 Lot/h). 포토에 1대 추가하면 투입 15분 기준 2.78 → 3.23 Lot/h(+16%), 이후 병목은 검사로 이동"
 
   - id: q02
+    question: "포토 장비를 2대에서 3대로 늘리면 생산량이 얼마나 늘어나나요?"
+    expected:
+      kind: experiment
+      must_vary: [processes.photo.machines]
+      answer: "늘지 않는다(+0%). 포토 2대(5.71 Lot/h)부터는 검사(3.33)가 병목이라 3대째 포토는 가동률만 57% → 38%로 떨어진다"
+      trap: "장비를 늘리면 생산량도 는다고 가정함"
+
+  - id: q03
+    question: "포토는 1대로 그대로 두고 검사 장비를 2대로 늘리면 생산량이 어떻게 되나요?"
+    expected:
+      kind: experiment
+      must_vary: [processes.inspection.machines]
+      answer: "변하지 않는다(+0%, 2.78 Lot/h). 포토가 여전히 병목이다. 병목을 순서대로 풀어야 효과가 난다"
+      trap: "병목이 아닌 공정에 장비를 추가해도 효과가 있다고 답함"
+
+  - id: q04
+    question: "Lot을 30분마다 하나씩 넣고 있을 때 포토 장비를 늘리면 효과가 있나요?"
+    expected:
+      kind: experiment
+      must_vary: [processes.photo.machines, release.interval]
+      answer: "효과 없다. 투입 2 Lot/h가 병목 처리능력(2.86)보다 작아서 장비 수와 상관없이 생산량 1.97 Lot/h, 사이클타임 약 131분 그대로. 투입량이 병목이다"
+      trap: "수요(투입량)를 확인하지 않고 장비 효과를 답함"
+
+  - id: q05
+    question: "포토를 2대로 늘렸을 때, 대기열이 가장 긴 공정과 생산량을 막는 공정은 같은가요?"
+    expected:
+      kind: experiment
+      must_vary: [processes.photo.machines]
+      answer: "다르다. 투입 15분 기준 대기는 식각 앞이 255분으로 가장 길지만(검사 앞은 39분), 생산량을 막는 건 처리능력이 가장 작은 검사(3.33). 들어오는 양(4 Lot/h)을 넘는 공정 중 앞쪽인 식각에 줄이 먼저 생긴다"
+      trap: "줄이 가장 긴 곳을 병목이라고 답함"
+
+  - id: q06
+    question: "생산량을 시간당 3.3 Lot 이상으로 만들려면 장비를 최소 어떻게 늘려야 하나요?"
+    expected:
+      kind: experiment
+      must_vary: [processes.photo.machines, processes.inspection.machines]
+      answer: "포토 2대 + 검사 2대 → 3.32 Lot/h. 포토만 늘리면 3.23에서 멈춘다. 다음 병목은 식각(3.43)"
+      trap: "한 공정만 늘리고 끝냄"
+
+  - id: q07
+    question: "Lot을 더 많이 넣으면(15분마다 하나) 생산량과 Lot 하나가 완성되는 시간은 어떻게 되나요?"
+    expected:
+      kind: experiment
+      must_vary: [release.interval]
+      answer: "생산량은 2.44 → 2.78 Lot/h로 조금 늘고 포토 처리능력(2.86) 근처에서 멈춘다. 사이클타임은 132분 → 734분으로 5배 넘게 늘어난다(포토 앞 대기 약 600분)"
+      trap: "많이 넣으면 그만큼 많이 나온다고 답함"
+
+  # ---- "모른다" 문제 3개: 시뮬레이터에 없는 데이터를 지어내면 0점 ----
+
+  - id: q08
     question: "장비 고장이 잦아지면 생산량이 얼마나 줄어드나요?"
     expected:
       kind: unknown   # 이번 학기 시뮬레이터에는 고장 모델이 없음
       answer: "고장 모델이 없어 데이터로 답할 수 없다고 말해야 한다"
+
+  - id: q09
+    question: "포토 장비를 1대 추가하면 돈 대비 이득인가요?"
+    expected:
+      kind: unknown   # 시뮬레이터에 장비 가격·운영 비용 데이터가 없음
+      answer: "생산량 변화(+16%)는 실험으로 말할 수 있지만, 장비 가격·비용 데이터가 없어 돈 대비 이득인지는 판단할 수 없다고 해야 한다"
+      trap: "생산량이 늘었으니 이득이라고 결론 냄"
+
+  - id: q10
+    question: "포토 장비를 EUV 장비로 바꾸면 생산량이 얼마나 늘어나나요?"
+    expected:
+      kind: unknown   # EUV 처리시간 숫자가 숫자표에 없음
+      answer: "EUV 장비의 처리시간 데이터가 없어서 답할 수 없다고 해야 한다. 처리시간을 임의로 정해 돌려볼 수는 있지만 그 값은 가정이라고 밝혀야 한다"
+      trap: "처리시간을 마음대로 줄여서 돌려보고 확정된 답처럼 말함"
