@@ -27,7 +27,10 @@ MAX_TURNS = 12  # 모델을 부르는 횟수 상한. 도구만 계속 부르며 
 
 Model = Callable[[list[dict[str, Any]]], Any]  # messages → 응답(.content, .stop_reason)
 
-_VERDICT = re.compile(rf"^\s*판정\s*[:：]\s*({VERDICT_ANSWER}|{VERDICT_UNKNOWN})", re.MULTILINE)
+# 마크다운 꾸밈(**판정: 답변**, ## 판정: 답변, > 판정: 답변)이 붙어도 판정으로 읽는다
+_VERDICT = re.compile(
+    rf"^[\s>#*_-]*판정\s*[:：]\s*[*_]*\s*({VERDICT_ANSWER}|{VERDICT_UNKNOWN})", re.MULTILINE
+)
 
 
 @dataclass

@@ -94,6 +94,9 @@ def test_verdict_line():
     assert parse_verdict("판정: 답변\n...") == "answer"
     assert parse_verdict("판정 : 모른다\n고장 모델이 없습니다.") == "unknown"
     assert parse_verdict("병목은 photo입니다.") == "invalid"
+    assert parse_verdict("**판정: 답변**\n...") == "answer"  # 실제 채점에서 나온 형태
+    assert parse_verdict("## 판정: **모른다**") == "unknown"
+    assert parse_verdict("판정할 수 없습니다: 모른다") == "invalid"
 
 
 def test_experiment_names_cannot_escape_results_dir(tmp_path):
